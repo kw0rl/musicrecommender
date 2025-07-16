@@ -1,0 +1,9 @@
+# Komen: Abaikan folder node_modules
+node_modules/
+
+# Komen: Abaikan fail .env yang mengandungi maklumat sensitif
+.env
+
+# Komen: Abaikan fail kunci JSON Google Cloud awak
+# GANTIKAN DENGAN NAMA FAIL KUNCI AWAK YANG SEBENAR
+invertible-tree-448008-q4-0116f5ff5e46.json

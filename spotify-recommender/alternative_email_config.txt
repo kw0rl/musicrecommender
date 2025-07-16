@@ -1,0 +1,21 @@
+// Alternative email configuration for Outlook/Hotmail
+// Replace the transporter configuration with this if Gmail doesn't work:
+
+const transporter = nodemailer.createTransport({
+    host: 'smtp-mail.outlook.com',
+    port: 587,
+    secure: false,
+    auth: {
+        user: 'your-outlook-email@outlook.com', // or @hotmail.com
+        pass: 'your-outlook-password'
+    },
+    tls: {
+        ciphers: 'SSLv3'
+    }
+});
+
+// For Yahoo:
+// host: 'smtp.mail.yahoo.com'
+// port: 587 or 465
+// user: 'your-yahoo-email@yahoo.com'
+// pass: 'your-yahoo-app-password'
