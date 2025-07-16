@@ -9,9 +9,13 @@ async function updateDatabase() {
         // Create connection using your existing database configuration
         connection = await mysql.createConnection({
             host: process.env.DB_HOST || 'localhost',
+            port: process.env.DB_PORT || 3306,
             user: process.env.DB_USER || 'root',
             password: process.env.DB_PASSWORD || '',
-            database: process.env.DB_NAME || 'music_recommender'
+            database: process.env.DB_NAME || 'music_recommender',
+            ssl: process.env.DB_HOST && process.env.DB_HOST.includes('ondigitalocean.com') ? {
+                rejectUnauthorized: false
+            } : false
         });
 
         console.log('Connected to database successfully!');
