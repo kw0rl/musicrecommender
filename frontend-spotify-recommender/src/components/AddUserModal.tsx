@@ -56,7 +56,7 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserMo
       const data = await response.json();
       if (!response.ok) {
         // Capture error message from backend
-        throw new Error(data.msg || data.errors?.map((e: any) => e.msg).join(', ') || 'Failed to create user.');
+        throw new Error(data.msg || (data.errors && Array.isArray(data.errors) ? data.errors.map((e: { msg: string }) => e.msg).join(', ') : '') || 'Failed to create user.');
       }
 
       // Success!
@@ -64,9 +64,10 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserMo
       onUserAdded(); // Call the function to refresh user list in parent
       onClose(); // Close the modal (this will trigger the reset via useEffect)
 
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      setError(err.message);
+      if (err instanceof Error) setError(err.message);
+      else setError('Unknown error occurred');
     } finally {
       setIsLoading(false);
     }

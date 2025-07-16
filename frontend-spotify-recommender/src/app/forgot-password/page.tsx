@@ -28,7 +28,7 @@ export default function ForgotPasswordPage() {
 
       if (!response.ok) {
         if (data.errors && Array.isArray(data.errors)) {
-          setError(data.errors.map((err: any) => err.msg).join(', '));
+          setError(data.errors.map((err: { msg: string }) => err.msg).join(', '));
         } else {
           setError(data.msg || 'Failed to send reset email. Please try again.');
         }
@@ -52,7 +52,7 @@ export default function ForgotPasswordPage() {
             Forgot Password
           </h1>
           <p className="text-gray-600">
-            Enter your email address and we'll send you a link to reset your password
+            Enter your email address and we&apos;ll send you a link to reset your password
           </p>
         </div>
       </div>

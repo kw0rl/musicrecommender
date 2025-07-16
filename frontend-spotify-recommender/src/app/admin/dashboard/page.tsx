@@ -31,26 +31,28 @@ export default function AdminDashboardPage() {
 
   // Filter users based on search and filters
   useEffect(() => {
-    let filtered = users;
-
-    // Apply search filter
-    if (searchQuery.trim()) {
-      filtered = filtered.filter(user => 
-        user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    // Apply role filter
-    if (roleFilter !== 'All Roles') {
-      filtered = filtered.filter(user => user.role === roleFilter.toLowerCase());
-    }
-
-    // Apply status filter
-    if (statusFilter !== 'All Status') {
-      filtered = filtered.filter(user => user.status === statusFilter.toLowerCase().replace(' ', '_'));
-    }
-
+    const filtered = users
+      .filter(user => {
+        if (searchQuery.trim()) {
+          return (
+            user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            user.email.toLowerCase().includes(searchQuery.toLowerCase())
+          );
+        }
+        return true;
+      })
+      .filter(user => {
+        if (roleFilter !== 'All Roles') {
+          return user.role === roleFilter.toLowerCase();
+        }
+        return true;
+      })
+      .filter(user => {
+        if (statusFilter !== 'All Status') {
+          return user.status === statusFilter.toLowerCase().replace(' ', '_');
+        }
+        return true;
+      });
     setFilteredUsers(filtered);
   }, [users, searchQuery, roleFilter, statusFilter]);
 
@@ -74,8 +76,9 @@ export default function AdminDashboardPage() {
       if (!usersResponse.ok) throw new Error('Failed to get user list.');
       const usersData = await usersResponse.json();
       setUsers(usersData);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      if (err instanceof Error) setError(err.message);
+      else setError('Unknown error occurred');
     }
   }, []);
 
@@ -88,8 +91,9 @@ export default function AdminDashboardPage() {
       if (!pendingUsersResponse.ok) throw new Error('Failed to get list of users awaiting approval.');
       const pendingUsersData = await pendingUsersResponse.json();
       setPendingUsers(pendingUsersData);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      if (err instanceof Error) setError(err.message);
+      else setError('Unknown error occurred');
     }
   }, []);
 
@@ -108,8 +112,9 @@ export default function AdminDashboardPage() {
       
       alert(data.msg);
       await Promise.all([fetchAllUsers(token!), fetchPendingUsers(token!)]);
-    } catch (err: any) {
-      alert(`Error: ${err.message}`);
+    } catch (err) {
+      if (err instanceof Error) alert(`Error: ${err.message}`);
+      else alert('Unknown error occurred');
     }
   };
 
@@ -129,8 +134,9 @@ export default function AdminDashboardPage() {
       
       alert(data.msg);
       await Promise.all([fetchAllUsers(token!), fetchPendingUsers(token!)]);
-    } catch (err: any) {
-      alert(`Error: ${err.message}`);
+    } catch (err) {
+      if (err instanceof Error) alert(`Error: ${err.message}`);
+      else alert('Unknown error occurred');
     }
   };
 
@@ -158,9 +164,10 @@ export default function AdminDashboardPage() {
           fetchPendingUsers(token)
         ]);
 
-      } catch (err: any) {
+      } catch (err) {
         console.error("Authentication error:", err);
-        setError(err.message);
+        if (err instanceof Error) setError(err.message);
+        else setError('Unknown error occurred');
         router.push('/login');
       } finally {
         setLoading(false);
@@ -188,8 +195,9 @@ export default function AdminDashboardPage() {
       
       alert(data.msg);
       await Promise.all([fetchAllUsers(token!), fetchPendingUsers(token!)]);
-    } catch (err: any) {
-      alert(`Error: ${err.message}`);
+    } catch (err) {
+      if (err instanceof Error) alert(`Error: ${err.message}`);
+      else alert('Unknown error occurred');
     }
   };
 

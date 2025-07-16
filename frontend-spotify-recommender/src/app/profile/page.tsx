@@ -1,9 +1,10 @@
 // src/app/profile/page.tsx
 'use client';
 
-import { useEffect, useState, FormEvent } from 'react';
+import { useEffect, useState, FormEvent, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation'; // Add useSearchParams
 import Link from 'next/link';
+import Image from 'next/image';
 import DeleteAccountModal from '@/components/DeleteAccountModal';
 
 // Define User interface
@@ -18,7 +19,7 @@ interface User {
   spotify_access_token: string | null;
 }
 
-export default function ProfilePage() {
+function ProfilePageContent() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   
@@ -114,8 +115,9 @@ export default function ProfilePage() {
       
       setProfileMessage({ type: 'success', text: 'Profile successfully updated!' });
       setUser(data.user); // Update user state with new data
-    } catch (error: any) {
-      setProfileMessage({ type: 'error', text: error.message });
+    } catch (error) {
+      if (error instanceof Error) setProfileMessage({ type: 'error', text: error.message });
+      else setProfileMessage({ type: 'error', text: 'Unknown error occurred' });
     } finally {
       setIsUpdatingProfile(false);
     }
@@ -155,8 +157,9 @@ export default function ProfilePage() {
       setCurrentPassword('');
       setNewPassword('');
       setConfirmNewPassword('');
-    } catch (error: any) {
-      setPasswordMessage({ type: 'error', text: error.message });
+    } catch (error) {
+      if (error instanceof Error) setPasswordMessage({ type: 'error', text: error.message });
+      else setPasswordMessage({ type: 'error', text: 'Unknown error occurred' });
     } finally {
       setIsChangingPassword(false);
     }
@@ -237,8 +240,9 @@ export default function ProfilePage() {
       setUser(data.user); // Update user state with new image
       setSelectedImage(null);
       setImagePreview(null);
-    } catch (error: any) {
-      setProfileMessage({ type: 'error', text: error.message });
+    } catch (error) {
+      if (error instanceof Error) setProfileMessage({ type: 'error', text: error.message });
+      else setProfileMessage({ type: 'error', text: 'Unknown error occurred' });
     } finally {
       setIsUploadingImage(false);
     }
@@ -260,8 +264,9 @@ export default function ProfilePage() {
       
       setProfileMessage({ type: 'success', text: 'Profile image removed successfully!' });
       setUser(data.user); // Update user state
-    } catch (error: any) {
-      setProfileMessage({ type: 'error', text: error.message });
+    } catch (error) {
+      if (error instanceof Error) setProfileMessage({ type: 'error', text: error.message });
+      else setProfileMessage({ type: 'error', text: 'Unknown error occurred' });
     }
   };
 
@@ -319,9 +324,11 @@ export default function ProfilePage() {
                   {/* Profile Image */}
                   <div className="relative w-24 h-24 mx-auto mb-4">
                     {imagePreview || user.profile_image ? (
-                      <img 
+                      <Image 
                         src={imagePreview || `http://localhost:3001${user.profile_image}`} 
                         alt="Profile" 
+                        width={96}
+                        height={96}
                         className="w-24 h-24 rounded-full object-cover border-2 border-gray-200"
                       />
                     ) : (
@@ -526,7 +533,7 @@ export default function ProfilePage() {
                 <div className="flex items-center gap-4 mb-4">
                   {imagePreview ? (
                     <div className="relative w-24 h-24 rounded-full overflow-hidden">
-                      <img src={imagePreview} alt="Image Preview" className="w-full h-full object-cover" />
+                      <Image src={imagePreview} alt="Image Preview" width={96} height={96} className="w-full h-full object-cover" />
                       <button
                         onClick={handleRemoveImage}
                         className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 transition-colors"
@@ -638,5 +645,20 @@ export default function ProfilePage() {
         </div>
       </main>
     </>
+  );
+}
+
+export default function ProfilePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading profile...</p>
+        </div>
+      </div>
+    }>
+      <ProfilePageContent />
+    </Suspense>
   );
 }
