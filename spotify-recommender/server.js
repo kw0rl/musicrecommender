@@ -64,20 +64,26 @@ app.use('/api/spotify', spotifyRoutes);
 // (Already handled above)
 
 try {
-  // Auth Routes
+  // ---- LOAD ROUTES FROM EXTERNAL FILES ----
+  // Load auth routes
   const authRoutes = require('./routes/authRoutes');
   app.use('/api/auth', authRoutes); 
   console.log('Auth routes loaded successfully.');
 
-  // Google Auth Routes
+  // Load Google Auth routes  
   const googleAuthRoutes = require('./routes/googleAuthRoutes');
   app.use('/auth', googleAuthRoutes);
   console.log('Google Auth routes loaded successfully.');
 
-  // Admin Routes
+  // Load admin routes
   const adminRoutes = require('./routes/adminRoutes');
   app.use('/api/admin', adminRoutes);
   console.log('Admin routes loaded successfully.');
+
+  // Load test routes
+  const testRoutes = require('./routes/testRoutes');
+  app.use('/api/test', testRoutes);
+  console.log('Test routes loaded successfully.');
 
   // ---- SPOTIFY ROUTES CODE Goes Here ----
   // We pass the existing 'spotifyApi' object into the route file
