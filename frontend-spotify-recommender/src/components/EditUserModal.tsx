@@ -59,7 +59,8 @@ export default function EditUserModal({ isOpen, onClose, onUserUpdated, userToEd
     }
 
     // Build the 'payload' with ONLY fields that changed
-    const payload: { [key: string]: any } = {};
+    type Payload = Partial<{ username: string; email: string; role: 'user' | 'admin'; password: string }>;
+    const payload: Payload = {};
     if (username !== userToEdit.username) payload.username = username;
     if (email !== userToEdit.email) payload.email = email;
     if (role !== userToEdit.role) payload.role = role;
@@ -86,16 +87,23 @@ export default function EditUserModal({ isOpen, onClose, onUserUpdated, userToEd
 
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.msg || data.errors?.map((e: any) => e.msg).join(', ') || 'Failed to update user.');
+        throw new Error(
+          data.msg ||
+          (Array.isArray(data.errors)
+            ? data.errors.map((e: { msg: string }) => e.msg).join(', ')
+            : '') ||
+          'Failed to update user.'
+        );
       }
 
       alert('User information updated successfully!');
       onUserUpdated(); // Call parent function to refresh user list
       onClose(); // Close the modal
 
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      setError(err.message);
+      if (err instanceof Error) setError(err.message);
+      else setError('Unknown error occurred');
     } finally {
       setIsLoading(false);
     }

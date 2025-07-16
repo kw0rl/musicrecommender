@@ -2,12 +2,11 @@
 'use client';
 
 import EmotionRecommender from '../components/EmotionRecommender';
-import { useState, useEffect, useRef, FormEvent } from 'react';
+import { useState, useEffect, useRef, FormEvent, useCallback } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import Script from 'next/script'; // <-- 1. Import Script component
-import PlayerControls from '../components/PlayerControls';
-import InlinePlayer from '../components/InlinePlayer';
 import { useTheme, type Emotion } from '../contexts/ThemeContext';
 // import AddToPlaylistModal from '../components/AddToPlaylistModal';
 
@@ -28,15 +27,6 @@ interface SpotifyTrack {
         images: { url: string }[];
     };
     artists: { name: string }[];
-}
-
-// Add interface for EmotionPlaylistData
-interface EmotionPlaylistData {
-  id: string;
-  name: string;
-  owner: string;
-  image?: string;
-  uri: string;
 }
 
 interface Track {
@@ -70,7 +60,7 @@ export default function HomePage() {
   const [authLoading, setAuthLoading] = useState<boolean>(true);
 
   // ---- ADD THIS NEW STATE ----
-  const [recommendedPlaylists, setRecommendedPlaylists] = useState<any[]>([]);
+  const [recommendedPlaylists, setRecommendedPlaylists] = useState<Playlist[]>([]);
   const [selectedPlaylistTracks, setSelectedPlaylistTracks] = useState<Track[]>([])
   const [selectedPlaylistUri, setSelectedPlaylistUri] = useState<string | undefined>(undefined); // <-- Add this
   const [view, setView] = useState<'recommendations' | 'tracks' | 'playing'>('recommendations');
@@ -92,7 +82,6 @@ export default function HomePage() {
 
   // State for music search
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchType, setSearchType] = useState('track');
   const [searchResults, setSearchResults] = useState<SearchResults | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
@@ -107,8 +96,6 @@ export default function HomePage() {
   const [playbackProgress, setPlaybackProgress] = useState({ progressMs: 0, durationMs: 0 });
   const [shuffle, setShuffle] = useState(false);
 
-  const [isCreatePlaylistModalOpen, setIsCreatePlaylistModalOpen] = useState(false);
-  const [newPlaylistName, setNewPlaylistName] = useState('');
   // const [isAddToPlaylistModalOpen, setIsAddToPlaylistModalOpen] = useState(false);
   // const [trackUriToAdd, setTrackUriToAdd] = useState<string | null>(null);
 
@@ -192,8 +179,9 @@ export default function HomePage() {
           if (!response.ok) throw new Error(data.error || 'Failed to fetch recommendations.');
 
           setRecommendedPlaylists(data.playlist || []);
-        } catch (err: any) {
-          setError(err.message);
+        } catch (err) {
+          if (err instanceof Error) setError(err.message);
+          else setError('Unknown error occurred');
         } finally {
           setIsLoading(false);
         }
@@ -213,53 +201,55 @@ export default function HomePage() {
     };
   }, [videoStream]);
 
+  // Wrap initializePlayer in useCallback to avoid useEffect dependency issues
+  const initializePlayer = useCallback((token: string) => {
+    if (window.Spotify) {
+      const player = new window.Spotify.Player({
+        name: 'FYP Music Player',
+        getOAuthToken: cb => { cb(token); },
+        volume: 0.5
+      });
+
+      player.addListener('ready', ({ device_id }) => {
+        console.log('Spotify Player is ready with device ID:', device_id);
+        setDeviceId(device_id);
+        setIsPlayerReady(true);
+      });
+
+      player.addListener('not_ready', ({ device_id }) => {
+        console.log('This device ID has gone offline:', device_id);
+        setIsPlayerReady(false);
+      });
+
+      // ---- MOST IMPORTANT PART: Listen to player state changes ----
+      player.addListener('player_state_changed', (state) => {
+        if (!state) {
+          setCurrentTrack(null);
+          setIsPlaying(false);
+          setPlaybackProgress({ progressMs: 0, durationMs: 0 });
+          return;
+        }
+        console.log("Player state changed:", state);
+        setCurrentTrack(state.track_window.current_track as SpotifyTrack);
+        setIsPlaying(!state.paused);
+        setPlaybackProgress({ progressMs: state.position, durationMs: state.duration });
+      });
+      // ------------------------------------------------------------------
+
+      player.addListener('authentication_error', ({ message }) => console.error(message));
+      player.addListener('account_error', ({ message }) => alert(`Account Error: ${message}`));
+
+      player.connect();
+      setSpotifyPlayer(player);
+    }
+  }, []);
+
   // REPLACE the previous useEffect for the player with this one:
   useEffect(() => {
-    const initializePlayer = (token: string) => {
-      if (window.Spotify) {
-        const player = new window.Spotify.Player({
-          name: 'FYP Music Player',
-          getOAuthToken: cb => { cb(token); },
-          volume: 0.5
-        });
-
-        player.addListener('ready', ({ device_id }) => {
-          console.log('Spotify Player is ready with device ID:', device_id);
-          setDeviceId(device_id);
-          setIsPlayerReady(true);
-        });
-
-        player.addListener('not_ready', ({ device_id }) => {
-          console.log('This device ID has gone offline:', device_id);
-          setIsPlayerReady(false);
-        });
-
-        // ---- MOST IMPORTANT PART: Listen to player state changes ----
-        player.addListener('player_state_changed', (state) => {
-          if (!state) {
-            setCurrentTrack(null);
-            setIsPlaying(false);
-            setPlaybackProgress({ progressMs: 0, durationMs: 0 });
-            return;
-          }
-          console.log("Player state changed:", state);
-          setCurrentTrack(state.track_window.current_track as SpotifyTrack);
-          setIsPlaying(!state.paused);
-          setPlaybackProgress({ progressMs: state.position, durationMs: state.duration });
-        });
-        // ------------------------------------------------------------------
-
-        player.addListener('authentication_error', ({ message }) => console.error(message));
-        player.addListener('account_error', ({ message }) => alert(`Account Error: ${message}`));
-
-        player.connect();
-        setSpotifyPlayer(player);
-      }
-    };
 
     // When the component is ready and user is logged in, define the window function
     // that will be triggered by <Script>
-    (window as any).onSpotifyWebPlaybackSDKReady = () => {
+    (window as unknown as { onSpotifyWebPlaybackSDKReady: () => void }).onSpotifyWebPlaybackSDKReady = () => {
       const token = localStorage.getItem('token');
       if (!token) return;
       fetch('http://localhost:3001/api/spotify/playback-token', { headers: { 'Authorization': `Bearer ${token}` } })
@@ -282,7 +272,7 @@ export default function HomePage() {
           const data = await res.json();
           setShuffle(!!data.shuffle);
         }
-      } catch (e) {
+      } catch {
         // ignore
       }
     };
@@ -349,12 +339,11 @@ export default function HomePage() {
       
       setVideoStream(stream);
       setIsCameraOn(true);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Camera error:", err);
-      
       let userMessage = "Unable to access camera. Please ensure permission is granted.";
-      
-      switch (err.name) {
+      const errorObj = err as { name?: string; message?: string };
+      switch (errorObj.name) {
         case "NotAllowedError":
           userMessage = "Camera access was denied. Please click the camera icon in your browser's address bar and allow camera access, then refresh the page.";
           break;
@@ -372,7 +361,7 @@ export default function HomePage() {
             setVideoStream(simpleStream);
             setIsCameraOn(true);
             return;
-          } catch (simpleErr) {
+          } catch {
             userMessage = "Camera access failed even with basic settings.";
           }
           break;
@@ -383,7 +372,11 @@ export default function HomePage() {
           userMessage = "Camera access blocked due to security settings. Please ensure you're on HTTPS or localhost.";
           break;
         default:
-          userMessage = `Camera error: ${err.message || err.name || "Unknown error"}`;
+          if (err instanceof Error) {
+            userMessage = `Camera error: ${err.message || err.name || "Unknown error"}`;
+          } else {
+            userMessage = "Camera error: Unknown error";
+          }
       }
       
       setCameraError(userMessage);
@@ -435,8 +428,9 @@ export default function HomePage() {
           stopCamera();
         }, 1000); // Wait 1 second to show the detection result, then turn off camera
         
-      } catch (err: any) {
-        setErrorFromEmotionDetection(err.message);
+      } catch (err) {
+        if (err instanceof Error) setErrorFromEmotionDetection(err.message);
+        else setErrorFromEmotionDetection('Unknown error occurred');
       } finally {
         setIsDetectingEmotion(false);
       }
@@ -465,15 +459,16 @@ export default function HomePage() {
     setSearchResults(null);
     const token = localStorage.getItem('token');
     try {
-      const params = new URLSearchParams({ q: searchQuery, type: searchType });
+      const params = new URLSearchParams({ q: searchQuery, type: 'track' });
       const response = await fetch(`http://localhost:3001/api/spotify/search?${params.toString()}`, {
         headers: { 'Authorization': `Bearer ${token!}` },
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Search failed.");
       setSearchResults(data);
-    } catch (err: any) {
-      setSearchError(err.message);
+    } catch (err) {
+      if (err instanceof Error) setSearchError(err.message);
+      else setSearchError('Unknown error occurred');
     } finally {
       setIsSearching(false);
     }
@@ -499,7 +494,7 @@ const handlePlay = async (uri: string) => {
     }
 
     const token = localStorage.getItem('token');
-    const playlistBody: { device_id: string; [key: string]: any } = {
+    const playlistBody: { device_id: string; [key: string]: unknown } = {
         device_id: deviceId
     };
 
@@ -558,7 +553,7 @@ const handlePlay = async (uri: string) => {
 
         console.log("PLAY REQUEST BODY:", playlistBody);
         // First play request
-        let playRes = await fetch('http://localhost:3001/api/spotify/play', {
+        const playRes = await fetch('http://localhost:3001/api/spotify/play', {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -568,7 +563,7 @@ const handlePlay = async (uri: string) => {
         });
         // Wait a bit and send again (Spotify bug workaround)
         await new Promise(res => setTimeout(res, 400));
-        let playRes2 = await fetch('http://localhost:3001/api/spotify/play', {
+        const playRes2 = await fetch('http://localhost:3001/api/spotify/play', {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -580,9 +575,10 @@ const handlePlay = async (uri: string) => {
         if (!playRes.ok || !playRes2.ok) {
             console.error('Spotify play API error:', await playRes.text(), await playRes2.text());
         }
-    } catch (err: any) {
+    } catch (err) {
         console.error("Error calling play API:", err);
-        alert(err.message);
+        if (err instanceof Error) alert(err.message);
+        else alert('Unknown error occurred');
     }
 };
 
@@ -619,18 +615,19 @@ const handlePlay = async (uri: string) => {
         // Find the playlist URI from recommendedPlaylists or searchResults
         let foundUri: string | undefined = undefined;
         if (recommendedPlaylists.length > 0) {
-          const found = recommendedPlaylists.find((pl: any) => pl.id === playlistId);
+          const found = recommendedPlaylists.find((pl: Playlist) => pl.id === playlistId);
           if (found) foundUri = found.uri;
         }
         // fallback: try to find in searchResults if needed
         if (!foundUri && searchResults && searchResults.playlists) {
-          const found = searchResults.playlists.find((pl: any) => pl.id === playlistId);
+          const found = searchResults.playlists.find((pl: Playlist) => pl.id === playlistId);
           if (found) foundUri = found.uri;
         }
         setSelectedPlaylistUri(foundUri); // <-- Set the selected playlist URI
         setView('tracks'); // Switch view to show the list of tracks
-    } catch (err: any) {
-        setError(err.message);
+    } catch (err) {
+        if (err instanceof Error) setError(err.message);
+        else setError('Unknown error occurred');
     } finally {
         setIsLoading(false);
     }
@@ -662,10 +659,6 @@ useEffect(() => {
     return <main className="flex min-h-screen items-center justify-center bg-gray-900 text-white"><p>Loading...</p></main>;
   }
 
-  function initializePlayer(e: any): void {
-    throw new Error('Function not implemented.');
-  }
-
 return (
   <>
     {loggedInUser && <Script src="https://sdk.scdn.co/spotify-player.js" />}
@@ -695,9 +688,11 @@ return (
           <div className="max-w-lg w-full text-center space-y-8">
             {/* Album Art */}
             <div className="relative">
-              <img 
+              <Image 
                 src={currentTrack.album.images[0]?.url || '/placeholder-album.png'} 
                 alt={currentTrack.name}
+                width={500}
+                height={500}
                 className="w-full aspect-square object-cover rounded-2xl shadow-2xl"
               />
             </div>
@@ -894,10 +889,10 @@ return (
                         <div className="text-xs text-gray-600 bg-gray-50 p-2 rounded">
                           <strong>Troubleshooting tips:</strong><br/>
                           1. Click the camera icon 🎥 in your browser address bar<br/>
-                          2. Select "Allow" for camera access<br/>
+                          2. Select &quot;Allow&quot; for camera access<br/>
                           3. Close other apps that might be using the camera<br/>
                           4. Try refreshing the page<br/>
-                          5. Make sure you're on localhost or HTTPS
+                          5. Make sure you&apos;re on localhost or HTTPS
                         </div>
                       </div>
                     )}
@@ -1017,9 +1012,11 @@ return (
                                 onClick={() => handlePlay(track.uri)}
                               >
                                 <div className="flex items-center gap-3 flex-1 min-w-0">
-                                  <img 
+                                  <Image 
                                     src={track.image || 'https://via.placeholder.com/48'} 
                                     alt={track.name} 
+                                    width={48}
+                                    height={48}
                                     className={`w-12 h-12 rounded-lg object-cover ${currentTheme.cardBorder} border`}
                                   />
                                   <div className="min-w-0 flex-1">
@@ -1051,7 +1048,12 @@ return (
                     {view === 'recommendations' && (
                       <EmotionRecommender 
                         emotion={currentEmotion}
-                        playlists={recommendedPlaylists}
+                        playlists={recommendedPlaylists.map(pl => ({
+                          id: pl.id,
+                          name: pl.name,
+                          description: pl.owner || '', // fallback if no description
+                          image: pl.image || null
+                        }))}
                         isLoading={isLoading}
                         error={error}
                         onPlaylistSelect={handlePlaylistSelect}
@@ -1082,12 +1084,12 @@ return (
                         
                         <h3 className={`text-xl font-semibold mb-4 ${currentTheme.textPrimary}`}>
                           {(() => {
-                            let playlist = null;
+                            let playlist: Playlist | undefined = undefined;
                             if (recommendedPlaylists && recommendedPlaylists.length > 0 && selectedPlaylistUri) {
-                              playlist = recommendedPlaylists.find((pl: any) => pl.uri === selectedPlaylistUri);
+                              playlist = recommendedPlaylists.find((pl: Playlist) => pl.uri === selectedPlaylistUri);
                             }
                             if (!playlist && searchResults && searchResults.playlists && selectedPlaylistUri) {
-                              playlist = searchResults.playlists.find((pl: any) => pl.uri === selectedPlaylistUri);
+                              playlist = searchResults.playlists.find((pl: Playlist) => pl.uri === selectedPlaylistUri);
                             }
                             return playlist ? playlist.name : 'Playlist Tracks';
                           })()}
@@ -1107,9 +1109,11 @@ return (
                                 onClick={() => handlePlay(track.uri)}
                               >
                                 <div className="flex items-center gap-3 flex-1 min-w-0">
-                                  <img 
+                                  <Image 
                                     src={track.image || 'https://via.placeholder.com/48'} 
                                     alt={track.name} 
+                                    width={48}
+                                    height={48}
                                     className={`w-12 h-12 rounded-lg object-cover ${currentTheme.cardBorder} border`}
                                   />
                                   <div className="min-w-0 flex-1">
@@ -1387,9 +1391,11 @@ return (
                   className="flex items-center space-x-3 cursor-pointer flex-1 min-w-0"
                   onClick={() => setView('playing')}
                 >
-                  <img 
+                  <Image 
                     src={currentTrack.album.images[0]?.url || '/placeholder-album.png'} 
                     alt={currentTrack.name}
+                    width={48}
+                    height={48}
                     className="w-12 h-12 rounded object-cover"
                   />
                   <div className="min-w-0 flex-1">

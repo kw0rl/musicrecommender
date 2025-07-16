@@ -1,6 +1,7 @@
 'use client';
 
 import { useTheme } from '../contexts/ThemeContext';
+import Image from 'next/image';
 
 // Define the data type for the track
 interface Track {
@@ -53,16 +54,16 @@ export default function PlayerControls({
     return minutes + ':' + (Number(seconds) < 10 ? '0' : '') + seconds;
   };
 
-  const progressPercent = durationMs > 0 ? (progressMs / durationMs) * 100 : 0;
-
   return (
     <div className="flex flex-col items-center w-full">
       <div className="flex items-center gap-4 w-full max-w-4xl">
         {/* Song/album clickable area */}
         <div className="flex items-center gap-3 cursor-pointer group" onClick={onShowInlinePlayer} title="Show full player">
-          <img 
+          <Image 
             src={currentTrack.album.images[0]?.url} 
             alt={currentTrack.name} 
+            width={48}
+            height={48}
             className={`w-12 h-12 rounded-lg ${currentTheme.cardShadow} group-hover:scale-105 transition-transform ${currentTheme.cardBorder} border`} 
           />
           <div className="flex flex-col justify-center">

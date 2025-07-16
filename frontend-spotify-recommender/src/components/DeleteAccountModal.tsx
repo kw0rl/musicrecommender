@@ -38,16 +38,17 @@ export default function DeleteAccountModal({ isOpen, onClose, onAccountDeleted }
 
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.msg || 'Failed to delete account.');
+        throw new Error(data.msg || (data.errors && Array.isArray(data.errors) ? data.errors.map((e: { msg: string }) => e.msg).join(', ') : '') || 'Failed to delete account.');
       }
 
       // Success!
       alert(data.msg); // Show success message from backend
       onAccountDeleted(); // Call parent function to log out and redirect
 
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      setError(err.message);
+      if (err instanceof Error) setError(err.message);
+      else setError('Unknown error occurred');
     } finally {
       setIsLoading(false);
     }

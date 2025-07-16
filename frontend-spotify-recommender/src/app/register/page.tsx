@@ -41,7 +41,7 @@ export default function RegisterPage() {
 
       if (!response.ok) {
         if (data.errors && Array.isArray(data.errors)) {
-          setError(data.errors.map((err: any) => err.msg).join(', '));
+          setError(data.errors.map((err: { msg: string }) => err.msg).join(', '));
         } else {
           setError(data.msg || data.error || 'Registration failed. Please try again.');
         }

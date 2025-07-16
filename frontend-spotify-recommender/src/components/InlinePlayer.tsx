@@ -1,6 +1,8 @@
 // src/components/InlinePlayer.tsx
 'use client';
 
+import Image from 'next/image';
+
 // Tentukan interface untuk props yang akan diterima oleh komponen ini
 interface SpotifyTrack {
   name: string;
@@ -56,9 +58,11 @@ export default function InlinePlayer({
       {/* Content with relative positioning */}
       <div className="relative z-10 flex flex-col items-center w-full">
         {/* Gambar Album */}
-        <img
+        <Image
           src={currentTrack.album.images[0]?.url || 'https://via.placeholder.com/300'}
           alt={`Album cover for ${currentTrack.name}`}
+          width={256}
+          height={256}
           className="w-48 h-48 sm:w-64 sm:h-64 rounded-xl object-cover shadow-2xl mb-6 ring-1 ring-white/20"
         />
 

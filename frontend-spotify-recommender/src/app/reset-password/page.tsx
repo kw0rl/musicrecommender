@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, useEffect, FormEvent, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
-export default function ResetPasswordPage() {
+function ResetPasswordContent() {
   const [password, setPassword] = useState<string>('');
   const [confirmPassword, setConfirmPassword] = useState<string>('');
   const [message, setMessage] = useState<string | null>(null);
@@ -37,7 +37,7 @@ export default function ResetPasswordPage() {
           setIsValidToken(false);
           setError(data.msg || 'Invalid or expired reset token');
         }
-      } catch (err) {
+      } catch {
         setIsValidToken(false);
         setError('Error verifying reset token');
       }
@@ -50,6 +50,11 @@ export default function ResetPasswordPage() {
     event.preventDefault();
     setError(null);
     setMessage(null);
+
+    if (!token || isValidToken !== true) {
+      setError('Invalid or missing reset token.');
+      return;
+    }
 
     if (password !== confirmPassword) {
       setError('Passwords do not match');
@@ -76,7 +81,7 @@ export default function ResetPasswordPage() {
 
       if (!response.ok) {
         if (data.errors && Array.isArray(data.errors)) {
-          setError(data.errors.map((err: any) => err.msg).join(', '));
+          setError(data.errors.map((err: { msg: string }) => err.msg).join(', '));
         } else {
           setError(data.msg || 'Failed to reset password. Please try again.');
         }
@@ -221,5 +226,20 @@ export default function ResetPasswordPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    }>
+      <ResetPasswordContent />
+    </Suspense>
   );
 }
