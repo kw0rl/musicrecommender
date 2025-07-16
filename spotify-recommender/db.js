@@ -11,21 +11,31 @@ const pool = mysql.createPool({
   ssl: {
     rejectUnauthorized: false
   },
+  connectTimeout: 60000, // 60 seconds connection timeout
+  acquireTimeout: 60000, // 60 seconds to acquire connection from pool
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0
+  queueLimit: 0,
+  reconnect: true,
+  idleTimeout: 300000, // 5 minutes
+  enableKeepAlive: true,
+  keepAliveInitialDelay: 0
 });
 
-// Test connection
-pool.getConnection()
-  .then(connection => {
+// Test connection with graceful error handling
+const testConnection = async () => {
+  try {
+    const connection = await pool.getConnection();
     console.log('Successfully connected to MySQL database!');
     connection.release(); // release the connection back to the pool
-  })
-  .catch(err => {
+  } catch (err) {
     console.error('MySQL database connection error:', err);
-    // May need to exit application if database is critical
-    // process.exit(1);
-  });
+    // Don't exit the process - let the server start without database initially
+    console.log('Server will continue to run without database connection...');
+  }
+};
+
+// Test connection asynchronously without blocking server startup
+testConnection();
 
 module.exports = pool;
