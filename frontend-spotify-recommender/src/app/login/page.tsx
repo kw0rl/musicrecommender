@@ -20,7 +20,7 @@ const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
   setIsLoading(true);
 
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, {
+    const response = await fetch('http://localhost:3001/api/auth/login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -159,7 +159,7 @@ const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
 
             <div className="mt-6">
               <button
-                onClick={() => window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`}
+                onClick={() => window.location.href = 'http://localhost:3001/auth/google'}
                 className="w-full flex justify-center items-center py-3 px-4 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
               >
                 <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">

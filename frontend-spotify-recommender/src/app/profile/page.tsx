@@ -64,7 +64,7 @@ function ProfilePageContent() {
         return;
       }
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/me`, {
+        const response = await fetch('http://localhost:3001/api/auth/me', {
           headers: { 'Authorization': `Bearer ${token}` },
         });
         if (!response.ok) throw new Error("Invalid session");
@@ -102,7 +102,7 @@ function ProfilePageContent() {
     
     const token = localStorage.getItem('token');
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/update-profile`, {
+      const response = await fetch('http://localhost:3001/api/auth/update-profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -142,7 +142,7 @@ function ProfilePageContent() {
     
     const token = localStorage.getItem('token');
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/change-password`, {
+      const response = await fetch('http://localhost:3001/api/auth/change-password', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -177,7 +177,7 @@ function ProfilePageContent() {
   const handleSpotifyConnect = () => {
     const token = localStorage.getItem('token');
     if (token) {
-      const spotifyLoginUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/spotify/login?token=${token}`;
+      const spotifyLoginUrl = `http://localhost:3001/api/spotify/login?token=${token}`;
       window.location.href = spotifyLoginUrl;
     } else {
       alert("Your session has expired. Please log in again.");
@@ -225,7 +225,7 @@ function ProfilePageContent() {
     
     const token = localStorage.getItem('token');
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/upload-profile-image`, {
+      const response = await fetch('http://localhost:3001/api/auth/upload-profile-image', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token!}`,
@@ -252,7 +252,7 @@ function ProfilePageContent() {
   const handleRemoveImage = async () => {
     const token = localStorage.getItem('token');
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/remove-profile-image`, {
+      const response = await fetch('http://localhost:3001/api/auth/remove-profile-image', {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token!}`,
@@ -325,7 +325,7 @@ function ProfilePageContent() {
                   <div className="relative w-24 h-24 mx-auto mb-4">
                     {imagePreview || user.profile_image ? (
                       <Image 
-                        src={imagePreview || `${process.env.NEXT_PUBLIC_API_URL}${user.profile_image}`} 
+                        src={imagePreview || `http://localhost:3001${user.profile_image}`} 
                         alt="Profile" 
                         width={96}
                         height={96}
