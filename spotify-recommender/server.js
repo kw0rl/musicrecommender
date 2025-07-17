@@ -6,8 +6,8 @@ const SpotifyWebApi = require('spotify-web-api-node');
 const cors = require('cors');
 require('dotenv').config();
 const vision = require('@google-cloud/vision');
-const path = require('path'); // Add this line
-const fs = require('fs'); // Add this line
+const path = require('path'); 
+const fs = require('fs');
 const session = require('express-session');
 const passport = require('passport');
 
@@ -53,15 +53,14 @@ const visionClient = new vision.ImageAnnotatorClient();
 const spotifyApi = new SpotifyWebApi({
   clientId: process.env.SPOTIFY_CLIENT_ID,
   clientSecret: process.env.SPOTIFY_CLIENT_SECRET,
-  redirectUri: 'http://127.0.0.1:3001/api/spotify/callback' // <-- ADD THIS LINE
+  redirectUri: 'http://127.0.0.1:3001/api/spotify/callback' 
 });
 const spotifyRoutes = require('./routes/spotifyRoutes')(spotifyApi);
 app.use('/api/spotify', spotifyRoutes);
 
 // ---- External Route Section ----
 
-// Create uploads directory if it doesn't exist
-// (Already handled above)
+
 
 try {
   // ---- LOAD ROUTES FROM EXTERNAL FILES ----
@@ -85,10 +84,12 @@ try {
   app.use('/api/test', testRoutes);
   console.log('Test routes loaded successfully.');
 
-  // ---- SPOTIFY ROUTES CODE Goes Here ----
-  // We pass the existing 'spotifyApi' object into the route file
+  // Load emotion routes
+  const emotionRoutes = require('./routes/emotionRoutes');
+  app.use('/api/emotion', emotionRoutes);
+  console.log('Emotion routes loaded successfully.');
 
-
+  // Spotify routes already loaded above (line 55-57)
   console.log('Spotify routes loaded successfully.');
   // ----------------------------------------
 
