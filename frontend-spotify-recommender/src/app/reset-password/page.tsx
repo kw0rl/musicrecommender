@@ -27,15 +27,20 @@ function ResetPasswordContent() {
 
     const verifyToken = async () => {
       try {
-        const response = await fetch(`http://localhost:3001/api/auth/verify-reset-token/${token}`);
-        const data = await response.json();
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/verify-reset-token/${token}`);
+        if (response.ok) {
+          const data = await response.json();
 
-        if (data.valid) {
-          setIsValidToken(true);
-          setUserInfo(data.user);
+          if (data.valid) {
+            setIsValidToken(true);
+            setUserInfo(data.user);
+          } else {
+            setIsValidToken(false);
+            setError(data.msg || 'Invalid or expired reset token');
+          }
         } else {
           setIsValidToken(false);
-          setError(data.msg || 'Invalid or expired reset token');
+          setError('Invalid or expired reset token');
         }
       } catch {
         setIsValidToken(false);
@@ -69,7 +74,7 @@ function ResetPasswordContent() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://localhost:3001/api/auth/reset-password', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/reset-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
