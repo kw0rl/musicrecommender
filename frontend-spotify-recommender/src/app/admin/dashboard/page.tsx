@@ -70,7 +70,7 @@ export default function AdminDashboardPage() {
   // Function to get list of all users (active and pending)
   const fetchAllUsers = useCallback(async (token: string) => {
     try {
-      const usersResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/users`, {
+      const usersResponse = await fetch('http://localhost:3001/api/admin/users', {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       if (!usersResponse.ok) throw new Error('Failed to get user list.');
@@ -85,7 +85,7 @@ export default function AdminDashboardPage() {
   // Function to get list of users awaiting approval
   const fetchPendingUsers = useCallback(async (token: string) => {
     try {
-      const pendingUsersResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/pending-users`, {
+      const pendingUsersResponse = await fetch('http://localhost:3001/api/admin/pending-users', {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       if (!pendingUsersResponse.ok) throw new Error('Failed to get list of users awaiting approval.');
@@ -103,7 +103,7 @@ export default function AdminDashboardPage() {
 
     const token = localStorage.getItem('token');
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/approve-user/${userId}`, {
+      const response = await fetch(`http://localhost:3001/api/admin/approve-user/${userId}`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` },
       });
@@ -125,7 +125,7 @@ export default function AdminDashboardPage() {
 
     const token = localStorage.getItem('token');
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/toggle-user-status/${userId}`, {
+      const response = await fetch(`http://localhost:3001/api/admin/toggle-user-status/${userId}`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` },
       });
@@ -150,7 +150,7 @@ export default function AdminDashboardPage() {
       }
 
       try {
-        const authResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/me`, {
+        const authResponse = await fetch('http://localhost:3001/api/auth/me', {
           headers: { 'Authorization': `Bearer ${token}` },
         });
         if (!authResponse.ok) throw new Error('Invalid session.');
@@ -186,7 +186,7 @@ export default function AdminDashboardPage() {
     
     const token = localStorage.getItem('token');
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/users/${userId}`, {
+      const response = await fetch(`http://localhost:3001/api/admin/users/${userId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` },
       });

@@ -27,7 +27,7 @@ export default function DeleteAccountModal({ isOpen, onClose, onAccountDeleted }
     }
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/delete-account`, {
+      const response = await fetch('http://localhost:3001/api/auth/delete-account', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',

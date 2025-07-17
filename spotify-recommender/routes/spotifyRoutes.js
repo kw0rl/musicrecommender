@@ -95,12 +95,10 @@ module.exports = function(spotifyApi) {
     if (error) {
       console.error('Ralat callback dari Spotify:', error);
       // Arahkan kembali ke frontend dengan mesej ralat
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-      return res.redirect(`${frontendUrl}/profile?spotify_error=${error}`);
+      return res.redirect(`http://localhost:3000/profile?spotify_error=${error}`);
     }
     if (!code || !userJwt) {
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-      return res.redirect(`${frontendUrl}/profile?spotify_error=invalid_callback`);
+      return res.redirect(`http://localhost:3000/profile?spotify_error=invalid_callback`);
     }
 
     try {
@@ -129,13 +127,11 @@ module.exports = function(spotifyApi) {
       console.log(`Token Spotify untuk pengguna ID ${userId} berjaya disimpan.`);
       
       // Langkah 4: Arahkan pengguna kembali ke halaman profil di frontend
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-      res.redirect(`${frontendUrl}/profile?spotify_connected=true`);
+      res.redirect('http://localhost:3000/profile?spotify_connected=true');
 
     } catch (err) {
       console.error('Ralat semasa proses callback Spotify:', err.message);
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-      res.redirect(`${frontendUrl}/profile?spotify_error=callback_failed`);
+      res.redirect(`http://localhost:3000/profile?spotify_error=callback_failed`);
     }
   });
 

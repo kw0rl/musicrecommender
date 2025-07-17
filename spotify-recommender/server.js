@@ -26,7 +26,7 @@ app.use(express.json({ limit: '10mb' }));
 
 // CORS Configuration for production
 const allowedOrigins = process.env.NODE_ENV === 'production' 
-  ? [process.env.FRONTEND_URL, 'https://sonicmoods-fldoc.ondigitalocean.app']
+  ? [process.env.FRONTEND_URL, 'https://your-app-name.ondigitalocean.app']
   : ['http://localhost:3000', 'http://localhost:3002'];
 
 app.use(cors({ 
@@ -84,12 +84,10 @@ try {
   app.use('/api/test', testRoutes);
   console.log('Test routes loaded successfully.');
 
-  // Load emotion routes
-  const emotionRoutes = require('./routes/emotionRoutes');
-  app.use('/api/emotion', emotionRoutes);
-  console.log('Emotion routes loaded successfully.');
+  // ---- SPOTIFY ROUTES CODE Goes Here ----
+  // We pass the existing 'spotifyApi' object into the route file
 
-  // Spotify routes already loaded above (line 55-57)
+
   console.log('Spotify routes loaded successfully.');
   // ----------------------------------------
 
@@ -278,9 +276,6 @@ app.post('/api/detect-emotion', async (req, res) => {
 
 // Start the server
 app.listen(port, async () => {
-  const serverUrl = process.env.NODE_ENV === 'production' 
-    ? process.env.BACKEND_URL || `https://sonicmoods-fldoc.ondigitalocean.app`
-    : `http://localhost:${port}`;
-  console.log(`Recommendation service listening at ${serverUrl}`);
+  console.log(`Recommendation service listening at http://localhost:${port}`);
   await grantSpotifyAccessToken(); 
 });
