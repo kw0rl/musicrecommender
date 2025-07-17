@@ -278,6 +278,9 @@ app.post('/api/detect-emotion', async (req, res) => {
 
 // Start the server
 app.listen(port, async () => {
-  console.log(`Recommendation service listening at http://localhost:${port}`);
+  const serverUrl = process.env.NODE_ENV === 'production' 
+    ? process.env.BACKEND_URL || `https://sonicmoods-fldoc.ondigitalocean.app`
+    : `http://localhost:${port}`;
+  console.log(`Recommendation service listening at ${serverUrl}`);
   await grantSpotifyAccessToken(); 
 });
