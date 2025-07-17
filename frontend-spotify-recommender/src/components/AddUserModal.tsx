@@ -44,7 +44,7 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserMo
     }
 
     try {
-      const response = await fetch('http://localhost:3001/api/admin/users', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/users`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

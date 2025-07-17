@@ -26,7 +26,7 @@ app.use(express.json({ limit: '10mb' }));
 
 // CORS Configuration for production
 const allowedOrigins = process.env.NODE_ENV === 'production' 
-  ? [process.env.FRONTEND_URL, 'https://your-app-name.ondigitalocean.app']
+  ? [process.env.FRONTEND_URL, 'https://sonicmoods-fldoc.ondigitalocean.app']
   : ['http://localhost:3000', 'http://localhost:3002'];
 
 app.use(cors({ 

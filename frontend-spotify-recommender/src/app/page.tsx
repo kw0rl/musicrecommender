@@ -125,7 +125,7 @@ export default function HomePage() {
     if (token) {
       const fetchUserDetails = async () => {
         try {
-          const response = await fetch('http://localhost:3001/api/auth/me', { headers: { 'Authorization': `Bearer ${token}` } });
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/me`, { headers: { 'Authorization': `Bearer ${token}` } });
           if (response.ok) {
             const data = await response.json();
             setLoggedInUser(data.user);
@@ -174,7 +174,7 @@ export default function HomePage() {
         setError(null);
         setView('recommendations'); // Set view to show playlists
         try {
-          const response = await fetch(`http://localhost:3001/recommendations/${currentEmotion}`);
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/recommendations/${currentEmotion}`);
           const data = await response.json();
           if (!response.ok) throw new Error(data.error || 'Failed to fetch recommendations.');
 
@@ -252,7 +252,7 @@ export default function HomePage() {
     (window as unknown as { onSpotifyWebPlaybackSDKReady: () => void }).onSpotifyWebPlaybackSDKReady = () => {
       const token = localStorage.getItem('token');
       if (!token) return;
-      fetch('http://localhost:3001/api/spotify/playback-token', { headers: { 'Authorization': `Bearer ${token}` } })
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/spotify/playback-token`, { headers: { 'Authorization': `Bearer ${token}` } })
         .then(res => res.ok ? res.json() : Promise.reject('Failed to get playback token'))
         .then(data => data.accessToken && initializePlayer(data.accessToken))
         .catch(e => console.error("Player initialization error:", e));
@@ -265,7 +265,7 @@ export default function HomePage() {
       if (!isPlayerReady || !deviceId) return;
       const token = localStorage.getItem('token');
       try {
-        const res = await fetch(`http://localhost:3001/api/spotify/shuffle-state?device_id=${deviceId}`, {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/spotify/shuffle-state?device_id=${deviceId}`, {
           headers: { 'Authorization': `Bearer ${token}` },
         });
         if (res.ok) {
@@ -285,7 +285,7 @@ export default function HomePage() {
     const token = localStorage.getItem('token');
     const newShuffle = !shuffle;
     setShuffle(newShuffle);
-    await fetch(`http://localhost:3001/api/spotify/shuffle?state=${newShuffle}&device_id=${deviceId}`,
+    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/spotify/shuffle?state=${newShuffle}&device_id=${deviceId}`,
       {
         method: 'PUT',
         headers: {
@@ -414,7 +414,7 @@ export default function HomePage() {
         return;
       }
       try {
-        const response = await fetch('http://localhost:3001/api/detect-emotion', {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/detect-emotion`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ image: base64Image }),
@@ -460,7 +460,7 @@ export default function HomePage() {
     const token = localStorage.getItem('token');
     try {
       const params = new URLSearchParams({ q: searchQuery, type: 'track' });
-      const response = await fetch(`http://localhost:3001/api/spotify/search?${params.toString()}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/spotify/search?${params.toString()}`, {
         headers: { 'Authorization': `Bearer ${token!}` },
       });
       const data = await response.json();
@@ -539,7 +539,7 @@ const handlePlay = async (uri: string) => {
         }
 
         if (shouldTurnOffShuffle && shuffle) {
-            await fetch(`http://localhost:3001/api/spotify/shuffle?state=false&device_id=${deviceId}`, {
+            await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/spotify/shuffle?state=false&device_id=${deviceId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -553,7 +553,7 @@ const handlePlay = async (uri: string) => {
 
         console.log("PLAY REQUEST BODY:", playlistBody);
         // First play request
-        const playRes = await fetch('http://localhost:3001/api/spotify/play', {
+        const playRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/spotify/play`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -563,7 +563,7 @@ const handlePlay = async (uri: string) => {
         });
         // Wait a bit and send again (Spotify bug workaround)
         await new Promise(res => setTimeout(res, 400));
-        const playRes2 = await fetch('http://localhost:3001/api/spotify/play', {
+        const playRes2 = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/spotify/play`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -605,7 +605,7 @@ const handlePlay = async (uri: string) => {
     setError(null);
     const token = localStorage.getItem('token');
     try {
-        const response = await fetch(`http://localhost:3001/api/spotify/playlists/${playlistId}`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/spotify/playlists/${playlistId}`, {
             headers: { 'Authorization': `Bearer ${token!}` },
         });
         const data = await response.json();

@@ -76,7 +76,7 @@ export default function EditUserModal({ isOpen, onClose, onUserUpdated, userToEd
     }
 
     try {
-      const response = await fetch(`http://localhost:3001/api/admin/users/${userToEdit.id}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/users/${userToEdit.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
