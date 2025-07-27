@@ -12,11 +12,9 @@ const pool = mysql.createPool({
     rejectUnauthorized: false
   },
   connectTimeout: 60000, // 60 seconds connection timeout
-  acquireTimeout: 60000, // 60 seconds to acquire connection from pool
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
-  reconnect: true,
   idleTimeout: 300000, // 5 minutes
   enableKeepAlive: true,
   keepAliveInitialDelay: 0
