@@ -53,7 +53,7 @@ const visionClient = new vision.ImageAnnotatorClient();
 const spotifyApi = new SpotifyWebApi({
   clientId: process.env.SPOTIFY_CLIENT_ID,
   clientSecret: process.env.SPOTIFY_CLIENT_SECRET,
-  redirectUri: 'http://127.0.0.1:3001/api/spotify/callback' 
+  redirectUri: process.env.SPOTIFY_REDIRECT_URI
 });
 const spotifyRoutes = require('./routes/spotifyRoutes')(spotifyApi);
 app.use('/api/spotify', spotifyRoutes);
@@ -276,6 +276,7 @@ app.post('/api/detect-emotion', async (req, res) => {
 
 // Start the server
 app.listen(port, async () => {
-  console.log(`Recommendation service listening at http://localhost:${port}`);
-  await grantSpotifyAccessToken(); 
+  const backendUrl = process.env.BACKEND_URL || `http://localhost:${port}`;
+  console.log(`Recommendation service listening at ${backendUrl}`);
+  await grantSpotifyAccessToken();
 });

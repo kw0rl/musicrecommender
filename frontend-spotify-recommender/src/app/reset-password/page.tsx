@@ -27,7 +27,7 @@ function ResetPasswordContent() {
 
     const verifyToken = async () => {
       try {
-        const response = await fetch(`http://localhost:3001/api/auth/verify-reset-token/${token}`);
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/verify-reset-token/${token}`);
         const data = await response.json();
 
         if (data.valid) {
@@ -69,7 +69,7 @@ function ResetPasswordContent() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://localhost:3001/api/auth/reset-password', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/reset-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
