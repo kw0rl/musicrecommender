@@ -9,6 +9,7 @@ const vision = require('@google-cloud/vision');
 const path = require('path'); 
 const fs = require('fs');
 const session = require('express-session');
+const MySQLStore = require('express-mysql-session')(session);
 const passport = require('passport');
 
 // Initialize Express app
@@ -34,12 +35,23 @@ app.use(cors({
     credentials: true // Enable credentials for CORS
 }));
 
-// Session middleware (required for Passport)
+
+// MySQL session store configuration
+const sessionStore = new MySQLStore({
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT || 3306,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+});
+
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'your-session-secret',
-    resave: false,
-    saveUninitialized: false,
-    cookie: { secure: false } // Set to true in production with HTTPS
+  key: 'session_cookie_name',
+  secret: process.env.SESSION_SECRET || 'your-session-secret',
+  store: sessionStore,
+  resave: false,
+  saveUninitialized: false,
+  cookie: { secure: false } // Set to true in production with HTTPS
 }));
 
 // Initialize Passport
