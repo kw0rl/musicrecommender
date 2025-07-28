@@ -79,10 +79,6 @@ try {
   app.use('/api/admin', adminRoutes);
   console.log('Admin routes loaded successfully.');
 
-  // Load test routes
-  const testRoutes = require('./routes/testRoutes');
-  app.use('/api/test', testRoutes);
-  console.log('Test routes loaded successfully.');
 
   // ---- SPOTIFY ROUTES CODE Goes Here ----
   // We pass the existing 'spotifyApi' object into the route file
