@@ -12,9 +12,7 @@ const router = express.Router();
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: process.env.NODE_ENV === 'production' 
-        ? `${process.env.BACKEND_URL}/auth/google/callback`
-        : "/auth/google/callback"
+    callbackURL: "https://sonicmoodsbackend-f3g5c.ondigitalocean.app/auth/google/callback"
 }, async (accessToken, refreshToken, profile, done) => {
     try {
         console.log('Google profile:', profile);
@@ -98,11 +96,18 @@ passport.deserializeUser(async (id, done) => {
 
 // Routes
 router.get('/google', 
-    passport.authenticate('google', { scope: ['profile', 'email'] })
+    passport.authenticate('google', { 
+        scope: ['profile', 'email'],
+        accessType: 'offline',
+        prompt: 'consent'
+    })
 );
 
 router.get('/google/callback',
-    passport.authenticate('google', { failureRedirect: '/login?error=google_auth_failed' }),
+    passport.authenticate('google', { 
+        failureRedirect: '/login?error=google_auth_failed',
+        session: false 
+    }),
     async (req, res) => {
         try {
             // Generate JWT token
