@@ -67,8 +67,10 @@ module.exports = function(spotifyApi) {
         'user-read-private',
         'user-read-playback-state',
         'user-modify-playback-state',
-        'playlist-modify-public',  // <-- TAMBAH INI
-        'playlist-modify-private'  // <-- TAMBAH INI
+        'playlist-read-public',
+        'playlist-read-private',
+        'playlist-modify-public',
+        'playlist-modify-private'
       ];
       
       // Gunakan token JWT aplikasi kita sebagai parameter 'state' untuk dihantar ke Spotify
@@ -160,8 +162,8 @@ module.exports = function(spotifyApi) {
       };
       res.json(results);
     } catch (err) {
-      console.error('Ralat semasa mencari di Spotify:', err.message);
-      res.status(500).json({ error: 'Berlaku ralat semasa membuat carian di Spotify.' });
+      console.error('Ralat semasa mencari di Spotify:', err);
+      res.status(500).json({ error: 'Gagal mencari playlist.' });
     }
   });
 
@@ -282,8 +284,8 @@ router.get('/shuffle-state', authMiddleware, async (req, res) => {
       res.json({ shuffle: false });
     }
   } catch (err) {
-    console.error('Ralat semasa mendapatkan shuffle state:', err.message);
-    res.status(err.statusCode || 500).json({ error: err.message });
+    console.error('Ralat semasa mendapatkan shuffle state:', err);
+    res.status(err.statusCode || 500).json({ error: 'Gagal mendapatkan shuffle state.' });
   }
 });
 
@@ -371,7 +373,7 @@ router.get('/playlists/:playlistId', authMiddleware, async (req, res) => {
             res.json(tracks);
 
         } catch (err) {
-            console.error(`Ralat semasa mendapatkan trek untuk playlist ${playlistId}:`, err.message);
+            console.error(`Ralat semasa mendapatkan trek untuk playlist ${playlistId}:`, err);
             res.status(500).json({ error: 'Gagal mendapatkan lagu dari playlist.' });
         }
     });
@@ -379,26 +381,50 @@ router.get('/playlists/:playlistId', authMiddleware, async (req, res) => {
   // Health check endpoint to test Spotify connection
   router.get('/health', authMiddleware, async (req, res) => {
     try {
-      const accessToken = await getValidSpotifyToken(req.user.id);
+      const userId = req.user.id;
+      const token = await getValidSpotifyToken(userId);
       
-      // Test the token by making a simple API call
-      const tempSpotifyApi = new SpotifyWebApi();
-      tempSpotifyApi.setAccessToken(accessToken);
-      
-      const userProfile = await tempSpotifyApi.getMe();
+      if (!token) {
+        return res.status(400).json({ 
+          connected: false, 
+          error: 'Spotify not connected or token expired' 
+        });
+      }
+
+      spotifyApi.setAccessToken(token);
+      const me = await spotifyApi.getMe();
       
       res.json({ 
-        status: 'healthy', 
-        spotify_user: userProfile.body.display_name || userProfile.body.id,
-        token_valid: true 
+        connected: true, 
+        spotify_user: me.body.display_name
       });
     } catch (err) {
       console.error('Spotify health check failed:', err.response ? err.response.body : err.message);
       res.status(500).json({ 
-        status: 'unhealthy', 
+        connected: false, 
         error: err.message,
-        spotify_connected: false 
+        details: err.response ? err.response.body : 'No additional details'
       });
+    }
+  });
+
+  // Disconnect from Spotify endpoint
+  router.post('/disconnect', authMiddleware, async (req, res) => {
+    try {
+      const userId = req.user.id;
+      
+      // Remove Spotify tokens from database
+      await dbPool.query(
+        'UPDATE users SET spotify_access_token = NULL, spotify_refresh_token = NULL, spotify_token_expires_at = NULL WHERE id = ?',
+        [userId]
+      );
+      
+      console.log(`User ID ${userId} disconnected from Spotify successfully.`);
+      res.json({ message: 'Successfully disconnected from Spotify.' });
+      
+    } catch (err) {
+      console.error('Error disconnecting from Spotify:', err);
+      res.status(500).json({ error: 'Failed to disconnect from Spotify.' });
     }
   });
 

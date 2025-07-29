@@ -184,6 +184,47 @@ function ProfilePageContent() {
       router.push('/login');
     }
   };
+
+  // ---- NEW FUNCTION TO DISCONNECT FROM SPOTIFY ----
+  const handleSpotifyDisconnect = async () => {
+    const confirmDisconnect = confirm("Are you sure you want to disconnect from Spotify? You will need to reconnect to play music.");
+    if (!confirmDisconnect) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert("Your session has expired. Please log in again.");
+        router.push('/login');
+        return;
+      }
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/spotify/disconnect`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        // Update user state to remove Spotify connection
+        setUser(prev => prev ? {
+          ...prev,
+          spotify_access_token: null,
+          spotify_refresh_token: null,
+          spotify_token_expires_at: null
+        } : null);
+        
+        alert("Successfully disconnected from Spotify!");
+      } else {
+        const error = await response.json();
+        alert(`Failed to disconnect: ${error.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error disconnecting from Spotify:', error);
+      alert('Failed to disconnect from Spotify. Please try again.');
+    }
+  };
   // ---------------------------------------------
 
   // Function to handle image selection
@@ -612,9 +653,17 @@ function ProfilePageContent() {
                     </div>
                   </div>
                   {user.spotify_access_token ? (
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span className="text-sm font-medium text-green-600">Connected</span>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span className="text-sm font-medium text-green-600">Connected</span>
+                      </div>
+                      <button
+                        onClick={handleSpotifyDisconnect}
+                        className="px-3 py-1 bg-red-100 text-red-600 rounded-lg text-sm font-medium hover:bg-red-200 transition-colors"
+                      >
+                        Disconnect
+                      </button>
                     </div>
                   ) : (
                     <button

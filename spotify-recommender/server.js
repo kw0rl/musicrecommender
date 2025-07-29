@@ -219,7 +219,7 @@ async function getPlaylistForEmotion(emotion) {
         return [];
 
     } catch (err) {
-        console.error(`Critical error in getPlaylistForEmotion for emotion "${emotion}":`, err.message);
+        console.error(`Critical error in getPlaylistForEmotion for emotion "${emotion}":`, err);
         if (err.statusCode === 401) await grantSpotifyAccessToken();
         return null;
     }
