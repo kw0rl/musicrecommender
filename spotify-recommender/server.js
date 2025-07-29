@@ -60,8 +60,35 @@ app.use(passport.session());
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Initialize API Clients
-const visionClient = new vision.ImageAnnotatorClient();
+// Initialize API Clients with proper Google credentials handling
+let visionClient;
+try {
+  // First, try to use credentials from environment variable
+  if (process.env.GOOGLE_CREDENTIALS_JSON) {
+    const credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS_JSON);
+    visionClient = new vision.ImageAnnotatorClient({
+      credentials: credentials
+    });
+    console.log('Google Vision client initialized with environment credentials');
+  } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+    // Fallback to application credentials file path
+    visionClient = new vision.ImageAnnotatorClient();
+    console.log('Google Vision client initialized with application credentials file');
+  } else {
+    // Try default authentication
+    visionClient = new vision.ImageAnnotatorClient();
+    console.log('Google Vision client initialized with default authentication');
+  }
+} catch (error) {
+  console.error('Failed to initialize Google Vision client:', error.message);
+  // Create a mock client that will throw an error when used
+  visionClient = {
+    annotateImage: async () => {
+      throw new Error('Google Vision API not properly configured. Please set GOOGLE_CREDENTIALS_JSON environment variable.');
+    }
+  };
+}
+
 const spotifyApi = new SpotifyWebApi({
   clientId: process.env.SPOTIFY_CLIENT_ID,
   clientSecret: process.env.SPOTIFY_CLIENT_SECRET,
