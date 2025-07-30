@@ -432,6 +432,40 @@ app.post('/api/detect-emotion', async (req, res) => {
   }
 });
 
+// Debug endpoint for profile images
+app.get('/api/debug-profile-images', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const [users] = await dbPool.query('SELECT profile_image FROM users WHERE id = ?', [userId]);
+    
+    if (users.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    const user = users[0];
+    const debug_info = {
+      user_id: userId,
+      profile_image_path: user.profile_image,
+      full_url: user.profile_image ? `${process.env.BACKEND_URL || `http://localhost:${port}`}${user.profile_image}` : null,
+      uploads_dir_exists: fs.existsSync(path.join(__dirname, 'uploads')),
+      profile_images_dir_exists: fs.existsSync(path.join(__dirname, 'uploads', 'profile-images')),
+      backend_url: process.env.BACKEND_URL || `http://localhost:${port}`,
+    };
+    
+    // Check if actual image file exists
+    if (user.profile_image) {
+      const imagePath = path.join(__dirname, user.profile_image);
+      debug_info.image_file_exists = fs.existsSync(imagePath);
+      debug_info.image_full_path = imagePath;
+    }
+    
+    res.json(debug_info);
+  } catch (error) {
+    console.error('Debug profile images error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Start the server
 app.listen(port, async () => {
   const backendUrl = process.env.BACKEND_URL || `http://localhost:${port}`;

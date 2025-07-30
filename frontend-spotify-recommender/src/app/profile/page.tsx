@@ -314,6 +314,11 @@ function ProfilePageContent() {
       setUser(data.user); // Update user state with new image
       setSelectedImage(null);
       setImagePreview(null);
+      
+      // Force refresh the page to ensure image loads properly
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     } catch (error) {
       if (error instanceof Error) setProfileMessage({ type: 'error', text: error.message });
       else setProfileMessage({ type: 'error', text: 'Unknown error occurred' });
@@ -404,6 +409,13 @@ function ProfilePageContent() {
                         width={96}
                         height={96}
                         className="w-24 h-24 rounded-full object-cover border-2 border-gray-200"
+                        onError={(e) => {
+                          console.error('Profile image failed to load:', `${process.env.NEXT_PUBLIC_API_URL}${user.profile_image}`);
+                          e.currentTarget.style.display = 'none';
+                        }}
+                        onLoad={() => {
+                          console.log('Profile image loaded successfully:', `${process.env.NEXT_PUBLIC_API_URL}${user.profile_image}`);
+                        }}
                       />
                     ) : (
                       <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center border-2 border-gray-200">
