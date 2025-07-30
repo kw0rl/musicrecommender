@@ -67,8 +67,8 @@ module.exports = function(spotifyApi) {
         'user-read-private',
         'user-read-playback-state',
         'user-modify-playback-state',
-        'playlist-read-public',
         'playlist-read-private',
+        'playlist-read-collaborative',
         'playlist-modify-public',
         'playlist-modify-private'
       ];
