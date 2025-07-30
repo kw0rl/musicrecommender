@@ -409,12 +409,13 @@ function ProfilePageContent() {
                         width={96}
                         height={96}
                         className="w-24 h-24 rounded-full object-cover border-2 border-gray-200"
+                        unoptimized={true}
                         onError={(e) => {
                           console.error('Profile image failed to load:', `${process.env.NEXT_PUBLIC_API_URL}${user.profile_image}`);
                           e.currentTarget.style.display = 'none';
                         }}
                         onLoad={() => {
-                          console.log('Profile image loaded successfully:', `${process.env.NEXT_PUBLIC_API_URL}${user.profile_image}`);
+                          console.log('Profile image loaded successfully');
                         }}
                       />
                     ) : (
