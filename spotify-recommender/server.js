@@ -11,6 +11,7 @@ const fs = require('fs');
 const session = require('express-session');
 const MySQLStore = require('express-mysql-session')(session);
 const passport = require('passport');
+const authMiddleware = require('./middleware/authMiddleware');
 
 // Initialize Express app
 const app = express();
@@ -148,7 +149,85 @@ const grantSpotifyAccessToken = async () => {
   }
 };
 
-// Function to search playlists based on emotion
+// Import getValidSpotifyToken from spotifyRoutes
+const { getValidSpotifyToken } = require('./routes/spotifyRoutes');
+
+// Function to search playlists based on emotion with user token
+async function getPlaylistForEmotionWithUserToken(emotion, userSpotifyApi) {
+    let searchQuery = '';
+    const searchOptions = { limit: 50, offset: 0 };
+    switch (emotion.toLowerCase()) {
+        case 'happy': searchQuery = 'happy pop uplifting'; break;
+        case 'sad': searchQuery = 'sad slow chill'; break;
+        case 'angry': searchQuery = 'angry workout rock'; break;
+        case 'neutral': {
+            const randomTerms = ['music', 'hits', 'mix', 'songs', 'playlist', 'top'];
+            const randomQuery = randomTerms[Math.floor(Math.random() * randomTerms.length)];
+            try {
+                const data = await userSpotifyApi.searchPlaylists(randomQuery, searchOptions);
+                if (data.body?.playlists?.items?.length > 0) {
+                    const validPlaylists = data.body.playlists.items
+                        .filter(p => p && p.name && p.id)
+                        .map(p => ({
+                            id: p.id,
+                            name: p.name,
+                            description: p.description || 'Tiada deskripsi.',
+                            image: p.images[0]?.url || null,
+                            uri: p.uri,
+                            owner: p.owner?.display_name || p.owner?.id || 'Unknown'
+                        }))
+                        .filter(p =>
+                            !/spotify/i.test(p.owner) &&
+                            !/records|band|artist|label|official|music|verified|company|group|collective|entertainment|media|radio|club|team|choir|ensemble/i.test(p.owner)
+                        );
+                    if (validPlaylists.length > 0) {
+                        // Shuffle and pick 10 random playlists
+                        const shuffled = validPlaylists.sort(() => 0.5 - Math.random());
+                        return shuffled.slice(0, 10);
+                    }
+                }
+                return [];
+            } catch (err) {
+                console.error(`Error fetching random playlist for neutral emotion:`, err);
+                return null;
+            }
+        }
+        default: break;
+    }
+
+    try {
+        console.log(`Searching Spotify for playlists with query: "${searchQuery}" for emotion: "${emotion}"`);
+        const data = await userSpotifyApi.searchPlaylists(searchQuery, searchOptions);
+
+        if (data.body?.playlists?.items?.length > 0) {
+            const validPlaylists = data.body.playlists.items
+                .filter(p => p && p.name && p.id)
+                .map(p => ({
+                    id: p.id,
+                    name: p.name,
+                    description: p.description || 'Tiada deskripsi.',
+                    image: p.images[0]?.url || null,
+                    uri: p.uri,
+                    owner: p.owner?.display_name || p.owner?.id || 'Unknown'
+                }))
+                .filter(p =>
+                    !/spotify/i.test(p.owner) &&
+                    !/records|band|artist|label|official|music|verified|company|group|collective|entertainment|media|radio|club|team|choir|ensemble/i.test(p.owner)
+                );
+
+            // Return first 50 playlists
+            return validPlaylists.slice(0, 50);
+        }
+
+        return [];
+
+    } catch (err) {
+        console.error(`Critical error in getPlaylistForEmotionWithUserToken for emotion "${emotion}":`, err);
+        return null;
+    }
+}
+
+// Function to search playlists based on emotion (old version - keep for backward compatibility)
 async function getPlaylistForEmotion(emotion) {
     let searchQuery = '';
     const searchOptions = { limit: 50, offset: 0 };
@@ -231,13 +310,34 @@ async function getPlaylistForEmotion(emotion) {
 // === API ENDPOINTS (Still Defined Inside server.js) ===
 
 // Emotion-based playlist recommendation endpoint
-app.get('/recommendations/:emotion', async (req, res) => {
+app.get('/recommendations/:emotion', authMiddleware, async (req, res) => {
   const { emotion } = req.params;
-  const playlistData = await getPlaylistForEmotion(emotion);
-  if (playlistData) {
-    res.json({ emotion, playlist: playlistData });
-  } else {
-    res.status(404).json({ error: `Could not find a suitable playlist for the emotion: ${emotion}.` });
+  const userId = req.user.id;
+  
+  try {
+    // Get user's Spotify token
+    const userSpotifyToken = await getValidSpotifyToken(userId);
+    if (!userSpotifyToken) {
+      return res.status(400).json({ 
+        error: 'Spotify not connected. Please connect your Spotify account first.' 
+      });
+    }
+    
+    // Create temporary SpotifyApi instance with user token
+    const userSpotifyApi = new SpotifyWebApi();
+    userSpotifyApi.setAccessToken(userSpotifyToken);
+    
+    // Get playlist using user token
+    const playlistData = await getPlaylistForEmotionWithUserToken(emotion, userSpotifyApi);
+    
+    if (playlistData) {
+      res.json({ emotion, playlist: playlistData });
+    } else {
+      res.status(404).json({ error: `Could not find a suitable playlist for the emotion: ${emotion}.` });
+    }
+  } catch (error) {
+    console.error('Error in recommendations endpoint:', error);
+    res.status(500).json({ error: 'Failed to get recommendations. Please try again.' });
   }
 });
 

@@ -432,3 +432,51 @@ router.get('/playlists/:playlistId', authMiddleware, async (req, res) => {
 
   return router;
 };
+
+// Export getValidSpotifyToken function for use in other modules  
+module.exports.getValidSpotifyToken = (userId) => {
+  const dbPool = require('../db');
+  const SpotifyWebApi = require('spotify-web-api-node');
+  
+  return new Promise(async (resolve, reject) => {
+    try {
+      const [users] = await dbPool.query('SELECT spotify_access_token, spotify_refresh_token, spotify_token_expires_at FROM users WHERE id = ?', [userId]);
+      if (users.length === 0 || !users[0].spotify_refresh_token) {
+        throw new Error('Pengguna tidak mempunyai sambungan Spotify yang sah.');
+      }
+      const user = users[0];
+      
+      // Check if token is expired or will expire soon (within 5 minutes)
+      const tokenExpiryTime = new Date(user.spotify_token_expires_at);
+      const fiveMinutesFromNow = new Date(Date.now() + 5 * 60 * 1000);
+      
+      if (tokenExpiryTime < fiveMinutesFromNow) {
+        console.log(`Token Spotify untuk pengguna ID ${userId} telah tamat tempoh atau akan tamat tempoh tidak lama lagi. Memohon token baru...`);
+        const tempSpotifyApi = new SpotifyWebApi({
+          clientId: process.env.SPOTIFY_CLIENT_ID,
+          clientSecret: process.env.SPOTIFY_CLIENT_SECRET,
+          redirectUri: process.env.SPOTIFY_REDIRECT_URI
+        });
+        
+        tempSpotifyApi.setRefreshToken(user.spotify_refresh_token);
+        const data = await tempSpotifyApi.refreshAccessToken();
+        const newAccessToken = data.body.access_token;
+        const newExpiryTime = new Date(Date.now() + data.body.expires_in * 1000);
+        
+        await dbPool.query(
+          'UPDATE users SET spotify_access_token = ?, spotify_token_expires_at = ? WHERE id = ?',
+          [newAccessToken, newExpiryTime, userId]
+        );
+        
+        console.log(`Token Spotify baru untuk pengguna ID ${userId} berjaya disimpan. Tamat tempoh pada: ${newExpiryTime}`);
+        resolve(newAccessToken);
+      } else {
+        console.log(`Menggunakan token Spotify sedia ada untuk pengguna ID ${userId}. Tamat tempoh pada: ${tokenExpiryTime}`);
+        resolve(user.spotify_access_token);
+      }
+    } catch (error) {
+      console.error(`Ralat mendapatkan token Spotify untuk pengguna ID ${userId}:`, error.message);
+      reject(error);
+    }
+  });
+};
