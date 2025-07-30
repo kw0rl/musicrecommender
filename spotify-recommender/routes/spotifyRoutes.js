@@ -415,18 +415,111 @@ router.get('/playlists/:playlistId', authMiddleware, async (req, res) => {
     try {
       const userId = req.user.id;
       
-      // Remove Spotify tokens from database
+      // Remove ALL Spotify tokens from database completely
       await dbPool.query(
         'UPDATE users SET spotify_access_token = NULL, spotify_refresh_token = NULL, spotify_token_expires_at = NULL WHERE id = ?',
         [userId]
       );
       
-      console.log(`User ID ${userId} disconnected from Spotify successfully.`);
-      res.json({ message: 'Successfully disconnected from Spotify.' });
+      console.log(`User ID ${userId} disconnected from Spotify successfully. All tokens cleared.`);
+      res.json({ message: 'Successfully disconnected from Spotify. All tokens cleared.' });
       
     } catch (err) {
       console.error('Error disconnecting from Spotify:', err);
       res.status(500).json({ error: 'Failed to disconnect from Spotify.' });
+    }
+  });
+
+  // Check token scopes endpoint for debugging
+  router.get('/check-scopes', authMiddleware, async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const token = await getValidSpotifyToken(userId);
+      
+      if (!token) {
+        return res.status(400).json({ error: 'No Spotify connection found.' });
+      }
+      
+      // Test different API calls to see what scopes work
+      const tempSpotifyApi = new SpotifyWebApi();
+      tempSpotifyApi.setAccessToken(token);
+      
+      const results = {
+        token_exists: true,
+        tests: {}
+      };
+      
+      // Test basic profile access
+      try {
+        await tempSpotifyApi.getMe();
+        results.tests.profile_access = 'SUCCESS';
+      } catch (err) {
+        results.tests.profile_access = `FAILED: ${err.statusCode}`;
+      }
+      
+      // Test playlist search
+      try {
+        await tempSpotifyApi.searchPlaylists('test', { limit: 1 });
+        results.tests.playlist_search = 'SUCCESS';
+      } catch (err) {
+        results.tests.playlist_search = `FAILED: ${err.statusCode}`;
+      }
+      
+      // Test playback state
+      try {
+        await tempSpotifyApi.getMyCurrentPlaybackState();
+        results.tests.playback_state = 'SUCCESS';
+      } catch (err) {
+        results.tests.playback_state = `FAILED: ${err.statusCode}`;
+      }
+      
+      res.json(results);
+      
+    } catch (err) {
+      console.error('Error checking scopes:', err);
+      res.status(500).json({ error: 'Failed to check scopes.' });
+    }
+  });
+
+  // Force token refresh endpoint for debugging
+  router.post('/force-refresh', authMiddleware, async (req, res) => {
+    try {
+      const userId = req.user.id;
+      
+      // Get current tokens
+      const [users] = await dbPool.query(
+        'SELECT spotify_refresh_token FROM users WHERE id = ?', 
+        [userId]
+      );
+      
+      if (users.length === 0 || !users[0].spotify_refresh_token) {
+        return res.status(400).json({ error: 'No Spotify connection found. Please connect first.' });
+      }
+      
+      // Force refresh with new scopes
+      const tempSpotifyApi = new SpotifyWebApi({
+        clientId: process.env.SPOTIFY_CLIENT_ID,
+        clientSecret: process.env.SPOTIFY_CLIENT_SECRET,
+        redirectUri: process.env.SPOTIFY_REDIRECT_URI
+      });
+      
+      tempSpotifyApi.setRefreshToken(users[0].spotify_refresh_token);
+      const data = await tempSpotifyApi.refreshAccessToken();
+      const newAccessToken = data.body.access_token;
+      const newExpiryTime = new Date(Date.now() + data.body.expires_in * 1000);
+      
+      // Update with new token
+      await dbPool.query(
+        'UPDATE users SET spotify_access_token = ?, spotify_token_expires_at = ? WHERE id = ?',
+        [newAccessToken, newExpiryTime, userId]
+      );
+      
+      console.log(`Force refresh successful for user ID ${userId}`);
+      res.json({ message: 'Token refreshed successfully.' });
+      
+    } catch (err) {
+      console.error('Error force refreshing token:', err);
+      res.status(500).json({ error: 'Failed to refresh token.' });
     }
   });
 
