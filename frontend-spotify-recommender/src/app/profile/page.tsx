@@ -185,6 +185,39 @@ function ProfilePageContent() {
     }
   };
 
+  // ---- NEW FUNCTION TO FORCE RE-AUTHORIZATION ----
+  const handleSpotifyForceReauth = async () => {
+    const confirmReauth = confirm("This will force Spotify to ask for permissions again. This may fix connection issues. Continue?");
+    if (!confirmReauth) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert("Your session has expired. Please log in again.");
+        router.push('/login');
+        return;
+      }
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/spotify/force-reauth`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        // Redirect to new authorization URL
+        window.location.href = data.authorization_url;
+      } else {
+        alert(`Failed to force re-authorization: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('Error forcing re-authorization:', error);
+      alert('Failed to force re-authorization. Please try again.');
+    }
+  };
+
   // ---- NEW FUNCTION TO DISCONNECT FROM SPOTIFY ----
   const handleSpotifyDisconnect = async () => {
     const confirmDisconnect = confirm("Are you sure you want to disconnect from Spotify? You will need to reconnect to play music.");
@@ -658,12 +691,21 @@ function ProfilePageContent() {
                         <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                         <span className="text-sm font-medium text-green-600">Connected</span>
                       </div>
-                      <button
-                        onClick={handleSpotifyDisconnect}
-                        className="px-3 py-1 bg-red-100 text-red-600 rounded-lg text-sm font-medium hover:bg-red-200 transition-colors"
-                      >
-                        Disconnect
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handleSpotifyForceReauth}
+                          className="px-3 py-1 bg-yellow-100 text-yellow-600 rounded-lg text-sm font-medium hover:bg-yellow-200 transition-colors"
+                          title="Force re-authorization to fix connection issues"
+                        >
+                          Fix Connection
+                        </button>
+                        <button
+                          onClick={handleSpotifyDisconnect}
+                          className="px-3 py-1 bg-red-100 text-red-600 rounded-lg text-sm font-medium hover:bg-red-200 transition-colors"
+                        >
+                          Disconnect
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     <button

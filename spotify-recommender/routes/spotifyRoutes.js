@@ -75,7 +75,8 @@ module.exports = function(spotifyApi) {
       
       // Gunakan token JWT aplikasi kita sebagai parameter 'state' untuk dihantar ke Spotify
       // Ini cara kita "ingat" siapa pengguna ini selepas mereka kembali dari Spotify
-      const authorizeURL = spotifyApi.createAuthorizeURL(scopes, String(token));
+      // Add show_dialog=true to force re-authorization
+      const authorizeURL = spotifyApi.createAuthorizeURL(scopes, String(token)) + '&show_dialog=true';
       
       console.log("Mengarahkan pengguna ke URL kebenaran Spotify...");
       res.redirect(authorizeURL);
@@ -478,6 +479,45 @@ router.get('/playlists/:playlistId', authMiddleware, async (req, res) => {
     } catch (err) {
       console.error('Error checking scopes:', err);
       res.status(500).json({ error: 'Failed to check scopes.' });
+    }
+  });
+
+  // Clear Spotify app authorization completely
+  router.post('/force-reauth', authMiddleware, async (req, res) => {
+    try {
+      const userId = req.user.id;
+      
+      // Clear ALL tokens from database
+      await dbPool.query(
+        'UPDATE users SET spotify_access_token = NULL, spotify_refresh_token = NULL, spotify_token_expires_at = NULL WHERE id = ?',
+        [userId]
+      );
+      
+      // Generate new authorization URL with show_dialog=true
+      const token = req.headers.authorization?.split(' ')[1];
+      const scopes = [
+        'streaming',
+        'user-read-email',
+        'user-read-private',
+        'user-read-playback-state',
+        'user-modify-playback-state',
+        'playlist-read-private',
+        'playlist-read-collaborative',
+        'playlist-modify-public',
+        'playlist-modify-private'
+      ];
+      
+      const authorizeURL = spotifyApi.createAuthorizeURL(scopes, String(token)) + '&show_dialog=true';
+      
+      console.log(`Force re-authorization for user ID ${userId}`);
+      res.json({ 
+        message: 'Tokens cleared. Please use this URL to re-authorize.',
+        authorization_url: authorizeURL
+      });
+      
+    } catch (err) {
+      console.error('Error forcing re-authorization:', err);
+      res.status(500).json({ error: 'Failed to force re-authorization.' });
     }
   });
 
