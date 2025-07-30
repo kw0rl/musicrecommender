@@ -59,7 +59,13 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Serve static files with CORS headers
+app.use('/uploads', (req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  next();
+}, express.static(path.join(__dirname, 'uploads')));
 
 // Initialize API Clients with proper Google credentials handling
 let visionClient;
@@ -432,6 +438,28 @@ app.post('/api/detect-emotion', async (req, res) => {
   }
 });
 
+// Direct image serving endpoint for testing
+app.get('/api/serve-image/:filename', (req, res) => {
+  try {
+    const filename = req.params.filename;
+    const imagePath = path.join(__dirname, 'uploads', 'profile-images', filename);
+    
+    if (!fs.existsSync(imagePath)) {
+      return res.status(404).json({ error: 'Image not found' });
+    }
+    
+    // Set proper headers
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    
+    // Send file
+    res.sendFile(imagePath);
+  } catch (error) {
+    console.error('Error serving image:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Debug endpoint for profile images
 app.get('/api/debug-profile-images', authMiddleware, async (req, res) => {
   try {
@@ -447,6 +475,7 @@ app.get('/api/debug-profile-images', authMiddleware, async (req, res) => {
       user_id: userId,
       profile_image_path: user.profile_image,
       full_url: user.profile_image ? `${process.env.BACKEND_URL || `http://localhost:${port}`}${user.profile_image}` : null,
+      alternative_url: user.profile_image ? `${process.env.BACKEND_URL || `http://localhost:${port}`}/api/serve-image/${path.basename(user.profile_image)}` : null,
       uploads_dir_exists: fs.existsSync(path.join(__dirname, 'uploads')),
       profile_images_dir_exists: fs.existsSync(path.join(__dirname, 'uploads', 'profile-images')),
       backend_url: process.env.BACKEND_URL || `http://localhost:${port}`,
