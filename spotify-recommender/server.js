@@ -315,7 +315,7 @@ app.get('/recommendations/:emotion', authMiddleware, async (req, res) => {
   const userId = req.user.id;
   
   try {
-    // Get user's Spotify token
+    // First try with user's Spotify token
     const userSpotifyToken = await getValidSpotifyToken(userId);
     if (!userSpotifyToken) {
       return res.status(400).json({ 
@@ -328,7 +328,13 @@ app.get('/recommendations/:emotion', authMiddleware, async (req, res) => {
     userSpotifyApi.setAccessToken(userSpotifyToken);
     
     // Get playlist using user token
-    const playlistData = await getPlaylistForEmotionWithUserToken(emotion, userSpotifyApi);
+    let playlistData = await getPlaylistForEmotionWithUserToken(emotion, userSpotifyApi);
+    
+    // If user token fails, fallback to global client credentials
+    if (!playlistData) {
+      console.log(`User token failed for user ${userId}, trying with global client credentials...`);
+      playlistData = await getPlaylistForEmotion(emotion);
+    }
     
     if (playlistData) {
       res.json({ emotion, playlist: playlistData });
@@ -337,7 +343,20 @@ app.get('/recommendations/:emotion', authMiddleware, async (req, res) => {
     }
   } catch (error) {
     console.error('Error in recommendations endpoint:', error);
-    res.status(500).json({ error: 'Failed to get recommendations. Please try again.' });
+    
+    // Final fallback - try with global client credentials
+    try {
+      console.log(`Final fallback for user ${userId}, using global client credentials...`);
+      const playlistData = await getPlaylistForEmotion(emotion);
+      if (playlistData) {
+        res.json({ emotion, playlist: playlistData });
+      } else {
+        res.status(500).json({ error: 'Failed to get recommendations. Please try again.' });
+      }
+    } catch (fallbackError) {
+      console.error('Even fallback failed:', fallbackError);
+      res.status(500).json({ error: 'Failed to get recommendations. Please try again.' });
+    }
   }
 });
 
