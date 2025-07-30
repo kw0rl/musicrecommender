@@ -220,7 +220,11 @@ async function getPlaylistForEmotion(emotion) {
 
     } catch (err) {
         console.error(`Critical error in getPlaylistForEmotion for emotion "${emotion}":`, err);
-        if (err.statusCode === 401) await grantSpotifyAccessToken();
+        if (err.statusCode === 401) {
+            await grantSpotifyAccessToken();
+        } else if (err.statusCode === 403) {
+            console.error('Access forbidden - user needs to reconnect with new scopes');
+        }
         return null;
     }
 }

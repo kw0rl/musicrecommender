@@ -255,6 +255,8 @@ router.put('/play', authMiddleware, async (req, res) => {
                     errorMessage = 'Akaun Spotify Premium diperlukan untuk memainkan muzik.';
                 } else if (spotifyError.error.reason === 'NOT_FOUND') {
                     errorMessage = 'Lagu atau playlist tidak dijumpai.';
+                } else if (statusCode === 403) {
+                    errorMessage = 'Akses ditolak. Sila disconnect dan connect semula ke Spotify untuk dapatkan permissions yang baru.';
                 }
             }
         } else {
