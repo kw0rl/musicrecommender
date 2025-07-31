@@ -43,6 +43,8 @@ function ProfilePageContent() {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [imageLoadError, setImageLoadError] = useState(false);
+  const [imageKey, setImageKey] = useState(0); // Force re-render of image
   
   const router = useRouter();
   const searchParams = useSearchParams(); // Hook to read query parameter from URL
@@ -72,6 +74,9 @@ function ProfilePageContent() {
         setUser(data.user);
         setUsernameInput(data.user.username);
         setEmailInput(data.user.email);
+        // Reset image error state when user data loads
+        setImageLoadError(false);
+        setImageKey(prev => prev + 1); // Force image refresh
       } catch (error) {
         console.error("Error getting profile data:", error);
         localStorage.removeItem('token');
@@ -83,6 +88,27 @@ function ProfilePageContent() {
     };
     fetchUserData();
   }, [router, searchParams]); // Add searchParams as dependency
+
+  // useEffect to handle image refresh when user profile_image changes
+  useEffect(() => {
+    if (user?.profile_image) {
+      setImageLoadError(false);
+      setImageKey(prev => prev + 1);
+      
+      // Preload the image to ensure it's ready
+      if (typeof window !== 'undefined') {
+        const img = new window.Image();
+        img.onload = () => {
+          console.log('Profile image preloaded successfully');
+        };
+        img.onerror = () => {
+          console.warn('Profile image preload failed');
+          setImageLoadError(true);
+        };
+        img.src = `${process.env.NEXT_PUBLIC_API_URL}${user.profile_image}?t=${Date.now()}`;
+      }
+    }
+  }, [user?.profile_image]);
 
   // Function to update profile (username/email)
   const handleProfileUpdate = async (event: FormEvent<HTMLFormElement>) => {
@@ -314,11 +340,15 @@ function ProfilePageContent() {
       setUser(data.user); // Update user state with new image
       setSelectedImage(null);
       setImagePreview(null);
+      setImageLoadError(false);
       
-      // Force refresh the page to ensure image loads properly
+      // Force image component to re-render with cache busting
+      setImageKey(prev => prev + 1);
+      
+      // Reload after a short delay to ensure backend file is ready
       setTimeout(() => {
         window.location.reload();
-      }, 1000);
+      }, 500);
     } catch (error) {
       if (error instanceof Error) setProfileMessage({ type: 'error', text: error.message });
       else setProfileMessage({ type: 'error', text: 'Unknown error occurred' });
@@ -343,6 +373,8 @@ function ProfilePageContent() {
       
       setProfileMessage({ type: 'success', text: 'Profile image removed successfully!' });
       setUser(data.user); // Update user state
+      setImageLoadError(false);
+      setImageKey(prev => prev + 1); // Force re-render
     } catch (error) {
       if (error instanceof Error) setProfileMessage({ type: 'error', text: error.message });
       else setProfileMessage({ type: 'error', text: 'Unknown error occurred' });
@@ -402,20 +434,23 @@ function ProfilePageContent() {
                 <div className="text-center">
                   {/* Profile Image */}
                   <div className="relative w-24 h-24 mx-auto mb-4">
-                    {imagePreview || user.profile_image ? (
+                    {(imagePreview || (user.profile_image && !imageLoadError)) ? (
                       <Image 
-                        src={imagePreview || `${process.env.NEXT_PUBLIC_API_URL}${user.profile_image}`} 
+                        key={imageKey} // Force re-render on key change
+                        src={imagePreview || `${process.env.NEXT_PUBLIC_API_URL}${user.profile_image}?t=${Date.now()}`} // Add timestamp for cache busting
                         alt="Profile" 
                         width={96}
                         height={96}
                         className="w-24 h-24 rounded-full object-cover border-2 border-gray-200"
                         unoptimized={true}
+                        priority={true} // Load image with priority
                         onError={(e) => {
                           console.error('Profile image failed to load:', `${process.env.NEXT_PUBLIC_API_URL}${user.profile_image}`);
-                          e.currentTarget.style.display = 'none';
+                          setImageLoadError(true);
                         }}
                         onLoad={() => {
                           console.log('Profile image loaded successfully');
+                          setImageLoadError(false);
                         }}
                       />
                     ) : (
@@ -462,6 +497,21 @@ function ProfilePageContent() {
                           Cancel
                         </button>
                       </div>
+                    </div>
+                  )}
+
+                  {/* Image Error Retry Button */}
+                  {user.profile_image && imageLoadError && (
+                    <div className="mb-4">
+                      <button
+                        onClick={() => {
+                          setImageLoadError(false);
+                          setImageKey(prev => prev + 1);
+                        }}
+                        className="px-3 py-1 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      >
+                        Retry Load Image
+                      </button>
                     </div>
                   )}
 
@@ -700,9 +750,9 @@ function ProfilePageContent() {
                   </div>
                   {user.spotify_access_token ? (
                     <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <span className="text-sm font-medium text-green-600">Connected</span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <span className="text-sm font-medium text-green-600">Connected</span>
                       </div>
                       <div className="flex gap-2">
                         <button

@@ -59,11 +59,17 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Serve static files with CORS headers
+// Serve static files with CORS headers and cache control
 app.use('/uploads', (req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  
+  // Add cache control headers to prevent aggressive caching
+  res.header('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.header('Pragma', 'no-cache');
+  res.header('Expires', '0');
+  
   next();
 }, express.static(path.join(__dirname, 'uploads')));
 
