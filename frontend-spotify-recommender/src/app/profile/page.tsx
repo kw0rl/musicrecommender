@@ -444,7 +444,7 @@ function ProfilePageContent() {
                         className="w-24 h-24 rounded-full object-cover border-2 border-gray-200"
                         unoptimized={true}
                         priority={true} // Load image with priority
-                        onError={(e) => {
+                        onError={() => {
                           console.error('Profile image failed to load:', `${process.env.NEXT_PUBLIC_API_URL}${user.profile_image}`);
                           setImageLoadError(true);
                         }}
